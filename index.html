@@ -10,7 +10,7 @@
   <meta name="description" content="Your supply share sets the size of your breaching leviathan. Feed it before the 36-hour clock hits zero or get RUGGED.">
   <meta name="theme-color" content="#040914">
 
-  <!-- OPEN GRAPH / FACEBOOK / TELEGRAM / DISCORD PREVIEW -->
+  <!-- OPEN GRAPH / SOCIAL PREVIEW -->
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://trench-whale.netlify.app/">
   <meta property="og:title" content="TRENCH WHALE | Terminal">
@@ -30,12 +30,12 @@
   <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 
-  <!-- ETHERS.JS V5 CDN FOR WEB3 WALLET CONNECTIVITY -->
+  <!-- ETHERS.JS V5 CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
 </head>
 <body>
 
-  <!-- PANIC ALARM AUDIO SYNTESIZER OVERLAY (FLASHES ON CRITICAL VITALITY) -->
+  <!-- PANIC ALARM AUDIO SYNTHESIZER OVERLAY -->
   <div id="alarmOverlay" class="alarm-overlay" hidden aria-hidden="true">
     <div class="alarm-banner">🚨 EMERGENCY: RUG WARNING ACTIVE 🚨</div>
   </div>
@@ -52,7 +52,7 @@
             <p class="brand-tagline">YOUR BAG DETERMINES YOUR BEAST • FEED OR GET RUGGED</p>
           </div>
         </div>
-        <a id="btnBuy" class="btn btn-buy" href="https://robinhood.com" target="_blank" rel="noopener noreferrer">BUY ON ROBINHOOD</a>
+        <a id="btnBuy" class="btn btn-buy" href="https://robinhood.com" target="_blank" rel="noopener noreferrer">BUY TOKEN</a>
       </div>
 
       <div class="ca-bar">
@@ -65,17 +65,10 @@
     <!-- ============ DASHBOARD GRID ============ -->
     <main class="dash">
 
-      <!-- LEFT COLUMN: OCEAN STAGE + EVOLUTION ARENA -->
+      <!-- LEFT COLUMN: OCEAN STAGE -->
       <section class="arena" aria-label="Whale stage">
         <div class="panel stage-card">
           <div class="ocean">
-            <div class="badge-row">
-              <span id="badgeChain" class="flex-badge">💎 DIAMOND CHAIN</span>
-              <span id="badgeLambo" class="flex-badge">🏎️ LAMBO</span>
-            </div>
-
-            <div id="whaleDialogue" class="speech">Connect your wallet and I will tell you what you are worth.</div>
-
             <div class="whale-wrap" id="whaleImageWrap">
               <img id="whaleImage" class="whale-img" src="images/whale-master.png" alt="Your pixel whale" width="320" height="320">
             </div>
@@ -85,6 +78,12 @@
               <span class="wave wave-front"></span>
             </div>
           </div>
+        </div>
+
+        <!-- CLEAN TERMINAL DIALOGUE BANNER -->
+        <div class="panel dialogue-panel">
+          <span class="dialogue-prefix">> STATUS:</span>
+          <p id="whaleDialogue" class="dialogue-text">Connect wallet to awaken your leviathan.</p>
         </div>
 
         <div class="tier-row">
@@ -136,7 +135,7 @@
           </div>
         </section>
 
-        <!-- FEED & ACTION BUTTONS -->
+        <!-- ACTION BUTTONS -->
         <section class="panel actions" aria-label="Whale actions">
           <button id="btnFeedX" class="btn btn-action" type="button">🐦 TWEET TO FEED (+50%)</button>
           <button id="btnDailyCheckin" class="btn btn-action" type="button">📅 DAILY CHECK-IN (+25%)</button>
@@ -151,18 +150,18 @@
           <ol id="leaderboardList" class="board-list">
             <li class="board-row">
               <span class="rank">#1</span>
-              <span id="lbAddr1" class="lb-addr">0x71C...89a2</span>
-              <span id="lbShare1" class="lb-share">8.40%</span>
+              <span class="lb-addr">0x71C...89a2</span>
+              <span class="lb-share">8.40%</span>
             </li>
             <li class="board-row">
               <span class="rank">#2</span>
-              <span id="lbAddr2" class="lb-addr">0x34A...12f4</span>
-              <span id="lbShare2" class="lb-share">4.20%</span>
+              <span class="lb-addr">0x34A...12f4</span>
+              <span class="lb-share">4.20%</span>
             </li>
             <li class="board-row">
               <span class="rank">#3</span>
-              <span id="lbAddr3" class="lb-addr">0x98B...ee01</span>
-              <span id="lbShare3" class="lb-share">2.10%</span>
+              <span class="lb-addr">0x98B...ee01</span>
+              <span class="lb-share">2.10%</span>
             </li>
           </ol>
         </section>
@@ -187,11 +186,9 @@
       </div>
       <div class="wallet-grid">
         <button class="wallet-opt" type="button" data-wallet="metamask">MetaMask</button>
-        <button class="wallet-opt" type="button" data-wallet="robinhood">Robinhood Wallet</button>
         <button class="wallet-opt" type="button" data-wallet="phantom">Phantom</button>
         <button class="wallet-opt" type="button" data-wallet="coinbase">Coinbase Wallet</button>
         <button class="wallet-opt" type="button" data-wallet="trust">Trust Wallet</button>
-        <button class="wallet-opt" type="button" data-wallet="rainbow">Rainbow</button>
       </div>
     </div>
   </div>

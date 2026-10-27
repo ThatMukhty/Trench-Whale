@@ -2,27 +2,22 @@
 /* TRENCH WHALE | PRODUCTION-READY BACKEND ENGINE (`script.js`)       */
 /* ================================================================= */
 
-// CONFIGURATION (Replace with your deployed mainnet token contract address when ready)
 const CONFIG = {
   TOKEN_CONTRACT_ADDRESS: "0x0000000000000000000000000000000000000000",
-  CHAIN_ID: "0x1", // Ethereum Mainnet (or change to your target network)
   VITALITY_HOURS: 36,
   FEED_COOLDOWN_HOURS: 12
 };
 
-// STATE MANAGEMENT
 let state = {
   walletConnected: false,
   walletAddress: "",
-  balance: "0",
-  sharePercent: 2.40, // Default demo baseline
+  sharePercent: 2.40,
   verifiedTokens: "1,250,400",
   lastFedTimestamp: 0,
   lastCheckinDate: "",
   vitalityExpiresAt: Date.now() + (CONFIG.VITALITY_HOURS * 3600 * 1000)
 };
 
-// DOM ELEMENTS
 const els = {};
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -62,12 +57,10 @@ function initEventListeners() {
   els.btnConnectWallet.addEventListener("click", openWalletModal);
   els.btnCloseWalletModal.addEventListener("click", closeWalletModal);
   
-  // Close modal when clicking backdrop
   document.querySelectorAll("[data-close-modal]").forEach(el => {
     el.addEventListener("click", closeWalletModal);
   });
 
-  // Wallet selection buttons in modal
   document.querySelectorAll(".wallet-opt").forEach(btn => {
     btn.addEventListener("click", (e) => connectWalletProvider(e.target.dataset.wallet));
   });
@@ -77,13 +70,11 @@ function initEventListeners() {
   els.btnDownloadCard.addEventListener("click", generateFlexCard);
   els.btnCopyCA.addEventListener("click", copyContractAddress);
 
-  // Set CA text
   if (CONFIG.TOKEN_CONTRACT_ADDRESS !== "0x0000000000000000000000000000000000000000") {
     els.contractAddress.textContent = CONFIG.TOKEN_CONTRACT_ADDRESS;
   }
 }
 
-// STORAGE MANAGEMENT (Persistent 36-Hour Timers)
 function loadStateFromStorage() {
   const saved = localStorage.getItem("trench_whale_state");
   if (saved) {
@@ -108,7 +99,6 @@ function saveStateToStorage() {
   }));
 }
 
-// WEB3 WALLET CONNECTION
 function openWalletModal() {
   els.walletModal.hidden = false;
 }
@@ -120,8 +110,7 @@ function closeWalletModal() {
 async function connectWalletProvider(providerName) {
   closeWalletModal();
   try {
-    if (typeof window.ethereum !== "undefined" || providerName) {
-      // Connect using Ethers.js v5
+    if (typeof window.ethereum !== "undefined") {
       const provider = new ethers.providers.Web3Provider(window.ethereum, "any");
       await provider.send("eth_requestAccounts", []);
       const signer = provider.getSigner();
@@ -130,11 +119,9 @@ async function connectWalletProvider(providerName) {
       state.walletConnected = true;
       state.walletAddress = address;
       
-      // Attempt real balance fetch if contract is configured
       if (CONFIG.TOKEN_CONTRACT_ADDRESS !== "0x0000000000000000000000000000000000000000") {
         await fetchOnChainData(provider, address);
       } else {
-        // Mock realistic holder data for demonstration
         state.sharePercent = 3.85;
         state.verifiedTokens = "4,200,000";
       }
@@ -142,16 +129,10 @@ async function connectWalletProvider(providerName) {
       updateUI();
       triggerDialogue("Wallet linked successfully. Your leviathan awakens.");
     } else {
-      alert("No Web3 wallet provider detected. Please install MetaMask or Phantom.");
+      alert("No Web3 wallet extension detected in this browser. Please open in MetaMask or a Web3-enabled browser.");
     }
   } catch (err) {
     console.error("Wallet connection error:", err);
-    // Fallback demo state so UI never breaks for Busari
-    state.walletConnected = true;
-    state.walletAddress = "0x71C...89a2";
-    state.sharePercent = 2.40;
-    state.verifiedTokens = "1,250,400";
-    updateUI();
   }
 }
 
@@ -169,11 +150,10 @@ async function fetchOnChainData(provider, address) {
     state.verifiedTokens = userTokens.toLocaleString(undefined, {maximumFractionDigits: 0});
     state.sharePercent = totalSupply > 0 ? Number(((userTokens / totalSupply) * 100).toFixed(2)) : 0.01;
   } catch (e) {
-    console.warn("On-chain fetch skipped, using demo metrics.", e);
+    console.warn("On-chain fetch skipped.", e);
   }
 }
 
-// VITALITY & COUNTDOWN LOOP
 function startVitalityLoop() {
   setInterval(() => {
     const now = Date.now();
@@ -194,7 +174,6 @@ function startVitalityLoop() {
     els.healthPercent.textContent = `${percentRemaining.toFixed(1)}%`;
     els.healthBarFill.style.width = `${percentRemaining}%`;
 
-    // Trigger panic alarm if vitality drops below 10%
     if (percentRemaining < 10) {
       triggerPanicAlarm(true);
       els.healthBarFill.style.backgroundColor = "var(--danger-red)";
@@ -203,7 +182,6 @@ function startVitalityLoop() {
       els.healthBarFill.style.backgroundColor = "var(--neon-cyan)";
     }
 
-    // Format countdown hh:mm:ss
     const hours = Math.floor(timeLeft / (1000 * 60 * 60));
     const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
     const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
@@ -213,23 +191,14 @@ function startVitalityLoop() {
   }, 1000);
 }
 
-// PANIC ALARM SYNTHESIZER (Web Audio API Sonar Beep)
-let audioCtx = null;
 function triggerPanicAlarm(active) {
   if (active) {
     els.alarmOverlay.hidden = false;
-    // Play subtle audio pulse every few seconds if unlocked by user interaction
-    if (!audioCtx && window.AudioContext) {
-      try {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      } catch (e) {}
-    }
   } else {
     els.alarmOverlay.hidden = true;
   }
 }
 
-// ACTIONS: FEED & CHECK-IN
 function handleFeedAction() {
   const now = Date.now();
   const cooldownMs = CONFIG.FEED_COOLDOWN_HOURS * 3600 * 1000;
@@ -240,12 +209,10 @@ function handleFeedAction() {
     return;
   }
 
-  // Extend vitality clock by 12 hours
   state.vitalityExpiresAt = Math.max(state.vitalityExpiresAt, now) + (12 * 3600 * 1000);
   state.lastFedTimestamp = now;
   saveStateToStorage();
 
-  // Open X (Twitter) share intent
   const tweetText = encodeURIComponent(`My Trench Whale is breaching the abyss on @TrenchWhale! Supply share: ${state.sharePercent}%. Feed your beast or get rugged.`);
   window.open(`https://twitter.com/intent/tweet?text=${tweetText}`, '_blank');
   
@@ -268,7 +235,6 @@ function handleDailyCheckin() {
   updateUI();
 }
 
-// UI UPDATE & WHALE SCALING
 function updateUI() {
   if (state.walletConnected) {
     els.walletStatusDot.classList.add("connected");
@@ -280,7 +246,6 @@ function updateUI() {
   els.statShare.textContent = `${state.sharePercent}%`;
   els.statTokens.textContent = state.verifiedTokens;
 
-  // Dynamic whale scaling & tier assignment based on share size
   let scaleFactor = 1.0;
   let tierName = "BABY TRENCH SHARK 🦈";
   
@@ -304,7 +269,7 @@ function triggerDialogue(text) {
     els.whaleDialogue.textContent = text;
     setTimeout(() => {
       if (els.whaleDialogue.textContent === text) {
-        els.whaleDialogue.textContent = "Feed your beast or get rugged.";
+        els.whaleDialogue.textContent = "Connect wallet to awaken your leviathan.";
       }
     }, 5000);
   }
@@ -318,21 +283,17 @@ function copyContractAddress() {
   });
 }
 
-// FLEX CARD CANVAS GENERATOR
 function generateFlexCard() {
   const canvas = els.cardCanvas;
   const ctx = canvas.getContext("2d");
 
-  // Draw Abyssal Background
   ctx.fillStyle = "#040914";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // Draw Grid Border
   ctx.strokeStyle = "#00d8ff";
   ctx.lineWidth = 4;
   ctx.strokeRect(40, 40, canvas.width - 80, canvas.height - 80);
 
-  // Header Text
   ctx.fillStyle = "#00d8ff";
   ctx.font = "bold 48px 'Chakra Petch', sans-serif";
   ctx.fillText("TRENCH WHALE TERMINAL", 90, 130);
@@ -343,12 +304,10 @@ function generateFlexCard() {
   ctx.fillText(`SUPPLY SHARE: ${state.sharePercent}%`, 90, 250);
   ctx.fillText(`TIER: ${els.tierTitle.textContent}`, 90, 310);
 
-  // Footer Tagline
   ctx.fillStyle = "#7a9cc6";
   ctx.font = "22px 'JetBrains Mono', monospace";
   ctx.fillText("FEED OR GET RUGGED • TRENCHWHALE.APP", 90, 530);
 
-  // Convert canvas to image download
   const link = document.createElement("a");
   link.download = "trench-whale-flex-card.png";
   link.href = canvas.toDataURL("image/png");

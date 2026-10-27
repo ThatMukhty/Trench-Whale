@@ -145,7 +145,7 @@ body::before {
   white-space: nowrap;
 }
 
-/* MAIN DASHBOARD GRID (Desktop Asymmetric Layout) */
+/* MAIN DASHBOARD GRID */
 .dash {
   display: grid;
   grid-template-columns: 1.2fr 1fr;
@@ -186,7 +186,7 @@ body::before {
 }
 .ocean {
   position: relative;
-  height: 440px;
+  height: 400px;
   background: radial-gradient(circle at center, #0a1b3d 0%, #02050b 100%);
   display: flex;
   flex-direction: column;
@@ -194,36 +194,6 @@ body::before {
   justify-content: flex-end;
   padding: 20px;
   overflow: hidden;
-}
-.badge-row {
-  position: absolute;
-  top: 15px;
-  left: 15px;
-  display: flex;
-  gap: 8px;
-  z-index: 5;
-}
-.flex-badge {
-  background: rgba(0, 216, 255, 0.15);
-  border: 1px solid var(--neon-cyan);
-  color: var(--neon-cyan);
-  font-size: 0.7rem;
-  padding: 4px 8px;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-.speech {
-  position: absolute;
-  top: 60px;
-  background: rgba(4, 15, 33, 0.95);
-  border: 1px solid var(--neon-cyan);
-  padding: 10px 15px;
-  font-size: 0.8rem;
-  color: var(--text-main);
-  max-width: 80%;
-  text-align: center;
-  box-shadow: 0 0 10px var(--neon-glow);
-  z-index: 6;
 }
 .whale-wrap {
   position: relative;
@@ -235,7 +205,7 @@ body::before {
   max-width: 100%;
   height: auto;
   filter: drop-shadow(0 0 15px var(--neon-cyan));
-  mix-blend-mode: screen; /* Instantly banishes black background boxes */
+  mix-blend-mode: screen;
 }
 .waves {
   position: absolute;
@@ -246,6 +216,25 @@ body::before {
   background: rgba(0, 216, 255, 0.08);
   border-top: 1px solid var(--neon-cyan);
   z-index: 4;
+}
+
+/* CLEAN TERMINAL DIALOGUE PANEL */
+.dialogue-panel {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid var(--border-cyan);
+}
+.dialogue-prefix {
+  color: var(--neon-cyan);
+  font-weight: 700;
+  font-size: 0.8rem;
+}
+.dialogue-text {
+  font-size: 0.8rem;
+  color: var(--text-main);
 }
 
 .tier-row {
@@ -383,7 +372,7 @@ body::before {
   gap: 10px;
 }
 
-/* BUTTON STYLING (Strict 2-Color Interactive) */
+/* BUTTON STYLING */
 .btn {
   background: transparent;
   border: 1px solid var(--neon-cyan);
