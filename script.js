@@ -10,8 +10,8 @@ const CONFIG = {
 };
 
 let state = {
-  walletConnected: false,
-  walletAddress: "",
+  walletConnected: localStorage.getItem("trench_whale_connected") === "true",
+  walletAddress: localStorage.getItem("trench_whale_address") || "",
   sharePercent: 2.40,
   verifiedTokens: "1,250,400",
   lastFedTimestamp: 0,
@@ -118,19 +118,20 @@ function openWalletModal() {
 function closeWalletModal() {
   if (els.walletModal) els.walletModal.hidden = true;
 }
-
-// SILENT AUTO-RECONNECT (RESTORES WALLET STATE INSTANTLY WITHOUT PROMPTING)
-async function checkAutoReconnect() {
+// SILENT AUTO-RECONNECT (RESTORES SESSION INSTANTLY)
+function checkAutoReconnect() {
   const savedAddress = localStorage.getItem("trench_whale_address");
   const isPreviouslyConnected = localStorage.getItem("trench_whale_connected") === "true";
 
   if (savedAddress && isPreviouslyConnected) {
-    // Instantly pass the saved address right back into updateWalletUI 
-    // so it locks your address, shortens it, and turns the button to CONNECTED immediately.
-    updateWalletUI(savedAddress);
+    state.walletConnected = true;
+    state.walletAddress = savedAddress;
+    connectedWalletAddress = savedAddress;
+    
+    // Force UI to update immediately with connected status and shortened address
+    updateUI();
   }
 }
-
 // WALLET CONNECTION (6 WALLETS SUPPORT)
 window.connectSelectedWallet = async function(walletType) {
   let provider = null;
