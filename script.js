@@ -125,10 +125,9 @@ async function checkAutoReconnect() {
   const isPreviouslyConnected = localStorage.getItem("trench_whale_connected") === "true";
 
   if (savedAddress && isPreviouslyConnected) {
-    state.walletConnected = true;
-    state.walletAddress = savedAddress;
-    connectedWalletAddress = savedAddress;
-    updateUI();
+    // Instantly pass the saved address right back into updateWalletUI 
+    // so it locks your address, shortens it, and turns the button to CONNECTED immediately.
+    updateWalletUI(savedAddress);
   }
 }
 
