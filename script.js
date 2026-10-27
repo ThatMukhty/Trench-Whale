@@ -4,7 +4,7 @@
 
 const CONFIG = {
   TOKEN_CONTRACT_ADDRESS: "0x0000000000000000000000000000000000000000",
-  CHAIN_ID: "0x1", // Ethereum Mainnet (or "0xaa36a7" for Sepolia Testnet)
+  CHAIN_ID: "0x1", // Ethereum Mainnet
   VITALITY_HOURS: 36,
   FEED_COOLDOWN_HOURS: 12
 };
@@ -64,7 +64,6 @@ function initEventListeners() {
     el.addEventListener("click", closeWalletModal);
   });
 
-  // Bind click listener for all 6 wallet modal options
   document.querySelectorAll(".wallet-opt").forEach(btn => {
     btn.addEventListener("click", (e) => window.connectSelectedWallet(e.target.dataset.wallet));
   });
@@ -115,36 +114,34 @@ function closeWalletModal() {
   if (els.walletModal) els.walletModal.hidden = true;
 }
 
-// AUTO-RECONNECT (PERSISTENCE)
+// AUTO-RECONNECT (RESTORES SESSION INSTANTLY WITHOUT ASKING TO RECONNECT)
 async function checkAutoReconnect() {
-  const isPreviouslyConnected = localStorage.getItem("trench_whale_connected") === "true";
   const savedAddress = localStorage.getItem("trench_whale_address");
+  const isPreviouslyConnected = localStorage.getItem("trench_whale_connected") === "true";
 
-  if (isPreviouslyConnected && typeof window.ethereum !== "undefined") {
-    try {
-      const provider = new ethers.providers.Web3Provider(window.ethereum, "any");
-      const accounts = await provider.send("eth_accounts", []);
-      if (accounts && accounts.length > 0) {
-        updateWalletUI(accounts[0]);
-      } else if (savedAddress) {
-        updateWalletUI(savedAddress);
-      }
-    } catch (e) {
-      if (savedAddress) updateWalletUI(savedAddress);
-    }
-  } else if (isPreviouslyConnected && savedAddress) {
+  if (savedAddress && isPreviouslyConnected) {
     updateWalletUI(savedAddress);
+
+    // Background verify with provider if injected
+    if (typeof window.ethereum !== "undefined") {
+      try {
+        const provider = new ethers.providers.Web3Provider(window.ethereum, "any");
+        const accounts = await provider.send("eth_accounts", []);
+        if (accounts && accounts.length > 0) {
+          updateWalletUI(accounts[0]);
+        }
+      } catch (e) {
+        console.warn("Background re-check skipped", e);
+      }
+    }
   }
 }
 
-// =================================================================
-// YOUR WALLET CONNECTION CODE (EXTENDED FOR ALL 6 WALLETS)
-// =================================================================
+// WALLET CONNECTION (6 WALLETS SUPPORT)
 window.connectSelectedWallet = async function(walletType) {
   let provider = null;
 
   try {
-    // 1. Detect specific wallet providers injected into browser
     if (walletType === 'phantom') {
       provider = (window.phantom && window.phantom.ethereum) || (window.phantom && window.phantom.solana) || window.ethereum;
     } else if (walletType === 'coinbase') {
@@ -155,7 +152,6 @@ window.connectSelectedWallet = async function(walletType) {
       provider = window.ethereum;
     }
 
-    // 2. Mobile deep-linking handler if provider isn't injected
     const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
     if (!provider && isMobile) {
       const currentUrl = encodeURIComponent(window.location.href);
@@ -187,26 +183,21 @@ window.connectSelectedWallet = async function(walletType) {
       return;
     }
 
-    // 3. Prompt user's wallet to connect and fetch active EVM address
     const accounts = await provider.request({ method: 'eth_requestAccounts' });
     
     if (accounts && accounts.length > 0) {
-      // 4. Capture the active Ethereum wallet address automatically
       connectedWalletAddress = accounts[0];
 
-      // Request network switch if configured
       try {
         await provider.request({
           method: 'wallet_switchEthereumChain',
           params: [{ chainId: CONFIG.CHAIN_ID }],
         });
       } catch (e) {
-        console.warn('Chain switch declined or unhandled:', e);
+        console.warn('Chain switch declined:', e);
       }
 
-      // Update UI & save connection persistence
       updateWalletUI(connectedWalletAddress);
-      
       closeWalletModal();
     }
   } catch (err) {
@@ -215,9 +206,6 @@ window.connectSelectedWallet = async function(walletType) {
   }
 };
 
-// =================================================================
-// HELPER: UPDATE WALLET UI & SAVE STATE
-// =================================================================
 function updateWalletUI(address) {
   state.walletConnected = true;
   state.walletAddress = address;
@@ -226,12 +214,10 @@ function updateWalletUI(address) {
   localStorage.setItem("trench_whale_connected", "true");
   localStorage.setItem("trench_whale_address", address);
 
-  // Attempt live balance query if contract address is set
   if (CONFIG.TOKEN_CONTRACT_ADDRESS !== "0x0000000000000000000000000000000000000000" && typeof window.ethereum !== "undefined") {
     const web3Provider = new ethers.providers.Web3Provider(window.ethereum, "any");
     fetchOnChainData(web3Provider, address);
   } else {
-    // Default baseline values for live demo
     state.sharePercent = 3.85;
     state.verifiedTokens = "4,200,000";
   }
@@ -302,6 +288,7 @@ function triggerPanicAlarm(active) {
   if (els.alarmOverlay) els.alarmOverlay.hidden = !active;
 }
 
+// FIXED CAPPED VITALITY LOGIC (Never exceeds fixed 36-hour ceiling)
 function handleFeedAction() {
   const now = Date.now();
   const cooldownMs = CONFIG.FEED_COOLDOWN_HOURS * 3600 * 1000;
@@ -312,14 +299,18 @@ function handleFeedAction() {
     return;
   }
 
-  state.vitalityExpiresAt = Math.max(state.vitalityExpiresAt, now) + (12 * 3600 * 1000);
+  const maxDurationMs = CONFIG.VITALITY_HOURS * 3600 * 1000;
+  const targetTime = Math.max(state.vitalityExpiresAt, now) + (12 * 3600 * 1000);
+  
+  // Cap vitality timer strictly at the fixed 36-hour maximum from current time
+  state.vitalityExpiresAt = Math.min(targetTime, now + maxDurationMs);
   state.lastFedTimestamp = now;
   saveStateToStorage();
 
   const tweetText = encodeURIComponent(`My Trench Whale is breaching the abyss on @TrenchWhale! Supply share: ${state.sharePercent}%. Feed your beast or get rugged.`);
   window.open(`https://twitter.com/intent/tweet?text=${tweetText}`, '_blank');
   
-  triggerDialogue("Delicious liquidity! Vitality restored by +50%.");
+  triggerDialogue("Delicious liquidity! Vitality replenished.");
   updateUI();
 }
 
@@ -330,7 +321,12 @@ function handleDailyCheckin() {
     return;
   }
 
-  state.vitalityExpiresAt += (24 * 3600 * 1000);
+  const now = Date.now();
+  const maxDurationMs = CONFIG.VITALITY_HOURS * 3600 * 1000;
+  const targetTime = Math.max(state.vitalityExpiresAt, now) + (24 * 3600 * 1000);
+
+  // Cap daily check-in strictly at the fixed 36-hour maximum ceiling
+  state.vitalityExpiresAt = Math.min(targetTime, now + maxDurationMs);
   state.lastCheckinDate = todayStr;
   saveStateToStorage();
 
