@@ -25,6 +25,7 @@ document.addEventListener("DOMContentLoaded", () => {
   loadStateFromStorage();
   initEventListeners();
   startVitalityLoop();
+  checkAutoReconnect(); // Automatically reconnect if previously connected
   updateUI();
 });
 
@@ -100,57 +101,79 @@ function saveStateToStorage() {
 }
 
 function openWalletModal() {
+  // If already connected, clicking wallet button can copy or show status
+  if (state.walletConnected) {
+    alert(`Connected Wallet: ${state.walletAddress}`);
+    return;
+  }
   els.walletModal.hidden = false;
 }
 
 function closeWalletModal() {
   els.walletModal.hidden = true;
 }
+
+// AUTO-RECONNECT: Check if user already connected previously in this browser session
+async function checkAutoReconnect() {
+  if (typeof window.ethereum !== "undefined") {
+    try {
+      const provider = new ethers.providers.Web3Provider(window.ethereum, "any");
+      // Check already authorized accounts without prompting popup
+      const accounts = await provider.send("eth_accounts", []);
+      if (accounts && accounts.length > 0) {
+        state.walletConnected = true;
+        state.walletAddress = accounts[0];
+        localStorage.setItem("trench_whale_connected", "true");
+        updateUI();
+      }
+    } catch (err) {
+      console.warn("Auto-reconnect check failed", err);
+    }
+  } else if (localStorage.getItem("trench_whale_connected") === "true") {
+    // Fallback persisted session
+    const savedAddr = localStorage.getItem("trench_whale_address");
+    if (savedAddr) {
+      state.walletConnected = true;
+      state.walletAddress = savedAddr;
+      updateUI();
+    }
+  }
+}
+
+// DIRECT EVM WALLET CONNECTION (EIP-1193 API)
 async function connectWalletProvider(providerName) {
   closeWalletModal();
   try {
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    
     if (typeof window.ethereum !== "undefined") {
-      // Desktop or in-app browser with injected Ethereum provider
       const provider = new ethers.providers.Web3Provider(window.ethereum, "any");
-      await provider.send("eth_requestAccounts", []);
-      const signer = provider.getSigner();
-      const address = await signer.getAddress();
       
-      state.walletConnected = true;
-      state.walletAddress = address;
+      // Request account access using standard EIP-1193 provider API
+      const accounts = await provider.send("eth_requestAccounts", []);
       
-      if (CONFIG.TOKEN_CONTRACT_ADDRESS !== "0x0000000000000000000000000000000000000000") {
-        await fetchOnChainData(provider, address);
-      } else {
-        state.sharePercent = 3.85;
-        state.verifiedTokens = "4,200,000";
-      }
+      if (accounts && accounts.length > 0) {
+        const address = accounts[0];
+        state.walletConnected = true;
+        state.walletAddress = address;
+        
+        // Save persistence so user doesn't have to connect again
+        localStorage.setItem("trench_whale_connected", "true");
+        localStorage.setItem("trench_whale_address", address);
 
-      updateUI();
-      triggerDialogue("Wallet linked successfully. Your leviathan awakens.");
-    } else if (isMobile) {
-      // Mobile seamless presentation fallback: instantly establishes a live session
-      // so you don't get stuck in deep-link limbo during your demo.
-      state.walletConnected = true;
-      state.walletAddress = providerName === "phantom" ? "PhantomTrench...sol" : "0x71C...89a2";
-      state.sharePercent = 4.20;
-      state.verifiedTokens = "5,000,000";
-      
-      updateUI();
-      triggerDialogue(`Connected successfully via ${providerName.toUpperCase()} mobile session.`);
+        if (CONFIG.TOKEN_CONTRACT_ADDRESS !== "0x0000000000000000000000000000000000000000") {
+          await fetchOnChainData(provider, address);
+        } else {
+          state.sharePercent = 3.85;
+          state.verifiedTokens = "4,200,000";
+        }
+
+        updateUI();
+        triggerDialogue("Wallet connected successfully. Leviathan active.");
+      }
     } else {
-      // Desktop fallback demo connection
-      state.walletConnected = true;
-      state.walletAddress = "0x71C...89a2";
-      state.sharePercent = 2.40;
-      state.verifiedTokens = "1,250,400";
-      updateUI();
-      triggerDialogue("Demo session initialized.");
+      alert("No EVM-compatible Web3 wallet found. Please install MetaMask or open inside a Web3 browser.");
     }
   } catch (err) {
-    console.error("Wallet connection error:", err);
+    console.error("Wallet connection user rejection or error:", err);
   }
 }
 
@@ -254,10 +277,12 @@ function handleDailyCheckin() {
 }
 
 function updateUI() {
-  if (state.walletConnected) {
+  if (state.walletConnected && state.walletAddress) {
     els.walletStatusDot.classList.add("connected");
-    els.walletAddressDisplay.textContent = `${state.walletAddress.substring(0, 6)}...${state.walletAddress.substring(state.walletAddress.length - 4)}`;
-    els.btnConnectWallet.textContent = "WALLET CONNECTED";
+    // Shorten address for display while retaining full address internally
+    const shortenedAddr = `${state.walletAddress.substring(0, 6)}...${state.walletAddress.substring(state.walletAddress.length - 4)}`;
+    els.walletAddressDisplay.textContent = shortenedAddr;
+    els.btnConnectWallet.textContent = "CONNECTED";
     els.healthWarning.textContent = "Vitality clock active. Feed regularly.";
   }
 
