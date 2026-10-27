@@ -17,7 +17,6 @@ let state = {
   lastCheckinDate: localStorage.getItem("trench_last_checkin") || "",
   vitalityExpiresAt: Number(localStorage.getItem("trench_vitality_expires")) || (Date.now() + (CONFIG.VITALITY_HOURS * 3600 * 1000))
 };
-
 let connectedWalletAddress = "";
 const els = {};
 document.addEventListener("DOMContentLoaded", () => {
@@ -25,29 +24,12 @@ document.addEventListener("DOMContentLoaded", () => {
   loadStateFromStorage();
   initEventListeners();
   startVitalityLoop();
-  
-  // 1. Immediate visual restore from localStorage on cold-start
+
+  // Instant synchronous paint on frame zero for mobile cold starts
   if (state.walletConnected && state.walletAddress) {
     updateWalletUI(state.walletAddress, true); 
   } else {
     updateUI();
-  }
-
-  // 2. Cold-start provider watcher (handles cases where mobile provider injects late)
-  if (localStorage.getItem("trench_whale_connected") === "true") {
-    let attempts = 0;
-    const maxAttempts = 10; // Try for 2 seconds max
-    
-    const providerInterval = setInterval(() => {
-      attempts++;
-      if (typeof window.ethereum !== "undefined" || attempts >= maxAttempts) {
-        clearInterval(providerInterval);
-        const savedAddr = localStorage.getItem("trench_whale_address");
-        if (savedAddr && !state.walletConnected) {
-          updateWalletUI(savedAddr, true);
-        }
-      }
-    }, 200);
   }
 });
 function cacheDOM() {
@@ -138,15 +120,7 @@ function closeWalletModal() {
   if (els.walletModal) els.walletModal.hidden = true;
 }
 // SILENT AUTO-RECONNECT (RESTORES SESSION INSTANTLY)
-function checkAutoReconnect() {
-  const savedAddress = localStorage.getItem("trench_whale_address");
-  const isPreviouslyConnected = localStorage.getItem("trench_whale_connected") === "true";
 
-  if (savedAddress && isPreviouslyConnected) {
-    // This forces the full connected UI state (button text, green dot, address) instantly on mobile cold start
-    updateWalletUI(savedAddress, true);
-  }
-}
 // WALLET CONNECTION (6 WALLETS SUPPORT)
 window.connectSelectedWallet = async function(walletType) {
   let provider = null;
