@@ -143,12 +143,8 @@ function checkAutoReconnect() {
   const isPreviouslyConnected = localStorage.getItem("trench_whale_connected") === "true";
 
   if (savedAddress && isPreviouslyConnected) {
-    state.walletConnected = true;
-    state.walletAddress = savedAddress;
-    connectedWalletAddress = savedAddress;
-    
-    // Force UI to update immediately with connected status and shortened address
-    updateUI();
+    // This forces the full connected UI state (button text, green dot, address) instantly on mobile cold start
+    updateWalletUI(savedAddress, true);
   }
 }
 // WALLET CONNECTION (6 WALLETS SUPPORT)
