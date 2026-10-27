@@ -14,21 +14,25 @@ let state = {
   walletAddress: localStorage.getItem("trench_whale_address") || "",
   sharePercent: 2.40,
   verifiedTokens: "1,250,400",
-  lastFedTimestamp: 0,
-  lastCheckinDate: "",
-  vitalityExpiresAt: Date.now() + (CONFIG.VITALITY_HOURS * 3600 * 1000)
+  lastFedTimestamp: Number(localStorage.getItem("trench_last_fed")) || 0,
+  lastCheckinDate: localStorage.getItem("trench_last_checkin") || "",
+  vitalityExpiresAt: Number(localStorage.getItem("trench_vitality_expires")) || (Date.now() + (CONFIG.VITALITY_HOURS * 3600 * 1000))
 };
 
 let connectedWalletAddress = "";
 const els = {};
-
 document.addEventListener("DOMContentLoaded", () => {
   cacheDOM();
-  loadStateFromStorage(); // CRITICAL: Loads saved timer immediately on boot
+  loadStateFromStorage();
   initEventListeners();
   startVitalityLoop();
-  checkAutoReconnect(); // Restores wallet silently
-  updateUI();
+  
+  // Instant visual restore based on saved local state
+  if (state.walletConnected && state.walletAddress) {
+    updateWalletUI(state.walletAddress, true); 
+  } else {
+    updateUI();
+  }
 });
 
 function cacheDOM() {
@@ -200,14 +204,15 @@ window.connectSelectedWallet = async function(walletType) {
     alert('Wallet connection failed: ' + (err.message || 'User cancelled'));
   }
 };
-
-function updateWalletUI(address) {
+function updateWalletUI(address, isSilentRestore = false) {
   state.walletConnected = true;
   state.walletAddress = address;
   connectedWalletAddress = address;
 
+  // Save persistence instantly
   localStorage.setItem("trench_whale_connected", "true");
   localStorage.setItem("trench_whale_address", address);
+  saveStateToStorage();
 
   if (CONFIG.TOKEN_CONTRACT_ADDRESS !== "0x0000000000000000000000000000000000000000" && typeof window.ethereum !== "undefined") {
     const web3Provider = new ethers.providers.Web3Provider(window.ethereum, "any");
@@ -218,7 +223,9 @@ function updateWalletUI(address) {
   }
 
   updateUI();
-  triggerDialogue("EVM Wallet Linked: " + address.substring(0, 6) + "..." + address.substring(address.length - 4));
+  if (!isSilentRestore) {
+    triggerDialogue("EVM Wallet Linked: " + address.substring(0, 6) + "..." + address.substring(address.length - 4));
+  }
 }
 
 async function fetchOnChainData(provider, address) {
