@@ -26,14 +26,30 @@ document.addEventListener("DOMContentLoaded", () => {
   initEventListeners();
   startVitalityLoop();
   
-  // Instant visual restore based on saved local state
+  // 1. Immediate visual restore from localStorage on cold-start
   if (state.walletConnected && state.walletAddress) {
     updateWalletUI(state.walletAddress, true); 
   } else {
     updateUI();
   }
-});
 
+  // 2. Cold-start provider watcher (handles cases where mobile provider injects late)
+  if (localStorage.getItem("trench_whale_connected") === "true") {
+    let attempts = 0;
+    const maxAttempts = 10; // Try for 2 seconds max
+    
+    const providerInterval = setInterval(() => {
+      attempts++;
+      if (typeof window.ethereum !== "undefined" || attempts >= maxAttempts) {
+        clearInterval(providerInterval);
+        const savedAddr = localStorage.getItem("trench_whale_address");
+        if (savedAddr && !state.walletConnected) {
+          updateWalletUI(savedAddr, true);
+        }
+      }
+    }, 200);
+  }
+});
 function cacheDOM() {
   els.btnConnectWallet = document.getElementById("btnConnectWallet");
   els.walletStatusDot = document.getElementById("walletStatusDot");
