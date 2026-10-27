@@ -204,17 +204,18 @@ window.connectSelectedWallet = async function(walletType) {
   }
 };
 function updateWalletUI(address, isSilentRestore = false) {
+  // FORCE IMMEDIATE MEMORY & STORAGE SYNC FOR MOBILE
   state.walletConnected = true;
   state.walletAddress = address;
   connectedWalletAddress = address;
 
-  localStorage.setItem("trench_whale_connected", "true");
-  localStorage.setItem("trench_whale_address", address);
-  
-  // Save all state metrics to storage instantly
-  localStorage.setItem("trench_last_fed", state.lastFedTimestamp);
-  localStorage.setItem("trench_last_checkin", state.lastCheckinDate);
-  localStorage.setItem("trench_vitality_expires", state.vitalityExpiresAt);
+  try {
+    localStorage.setItem("trench_whale_connected", "true");
+    localStorage.setItem("trench_whale_address", address);
+    localStorage.setItem("trench_vitality_expires", state.vitalityExpiresAt);
+  } catch (e) {
+    console.error("Mobile storage blocked:", e);
+  }
 
   if (CONFIG.TOKEN_CONTRACT_ADDRESS !== "0x0000000000000000000000000000000000000000" && typeof window.ethereum !== "undefined") {
     const web3Provider = new ethers.providers.Web3Provider(window.ethereum, "any");
