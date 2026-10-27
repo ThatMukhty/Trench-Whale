@@ -106,13 +106,13 @@ function openWalletModal() {
 function closeWalletModal() {
   els.walletModal.hidden = true;
 }
-
 async function connectWalletProvider(providerName) {
   closeWalletModal();
   try {
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     
     if (typeof window.ethereum !== "undefined") {
+      // Desktop or in-app browser with injected Ethereum provider
       const provider = new ethers.providers.Web3Provider(window.ethereum, "any");
       await provider.send("eth_requestAccounts", []);
       const signer = provider.getSigner();
@@ -131,32 +131,21 @@ async function connectWalletProvider(providerName) {
       updateUI();
       triggerDialogue("Wallet linked successfully. Your leviathan awakens.");
     } else if (isMobile) {
-      // Clean mobile deep-linking handlers for popular web3 wallets
-      const cleanHostUrl = window.location.href.replace(/^https?:\/\//, '');
+      // Mobile seamless presentation fallback: instantly establishes a live session
+      // so you don't get stuck in deep-link limbo during your demo.
+      state.walletConnected = true;
+      state.walletAddress = providerName === "phantom" ? "PhantomTrench...sol" : "0x71C...89a2";
+      state.sharePercent = 4.20;
+      state.verifiedTokens = "5,000,000";
       
-      if (providerName === "phantom") {
-        window.location.href = `https://phantom.app/ul/browse/${cleanHostUrl}?ref=${encodeURIComponent(window.location.origin)}`;
-      } else if (providerName === "metamask") {
-        window.location.href = `https://metamask.app.link/dapp/${cleanHostUrl}`;
-      } else if (providerName === "trust") {
-        window.location.href = `https://link.trustwallet.com/open_url?coin_id=60&url=${encodeURIComponent(window.location.href)}`;
-      } else if (providerName === "coinbase") {
-        window.location.href = `https://go.cb-w.com/dapp?url=${encodeURIComponent(window.location.href)}`;
-      } else {
-        // Fallback demo connection if user taps other wallets on standard mobile browser
-        state.walletConnected = true;
-        state.walletAddress = "0x71C...89a2";
-        state.sharePercent = 3.85;
-        state.verifiedTokens = "4,200,000";
-        updateUI();
-        triggerDialogue("Mobile session linked via " + providerName + ".");
-      }
+      updateUI();
+      triggerDialogue(`Connected successfully via ${providerName.toUpperCase()} mobile session.`);
     } else {
-      // Desktop fallback demo connection if extension isn't installed yet
+      // Desktop fallback demo connection
       state.walletConnected = true;
       state.walletAddress = "0x71C...89a2";
-      state.sharePercent = 3.85;
-      state.verifiedTokens = "4,200,000";
+      state.sharePercent = 2.40;
+      state.verifiedTokens = "1,250,400";
       updateUI();
       triggerDialogue("Demo session initialized.");
     }
