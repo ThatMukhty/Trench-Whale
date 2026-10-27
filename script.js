@@ -110,6 +110,9 @@ function closeWalletModal() {
 async function connectWalletProvider(providerName) {
   closeWalletModal();
   try {
+    // Check if running on mobile without injected ethereum
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
     if (typeof window.ethereum !== "undefined") {
       const provider = new ethers.providers.Web3Provider(window.ethereum, "any");
       await provider.send("eth_requestAccounts", []);
@@ -128,8 +131,18 @@ async function connectWalletProvider(providerName) {
 
       updateUI();
       triggerDialogue("Wallet linked successfully. Your leviathan awakens.");
+    } else if (isMobile) {
+      // Mobile Deep Linking fallback so users can open app directly inside wallet browsers
+      const currentUrl = encodeURIComponent(window.location.href);
+      if (providerName === "metamask") {
+        window.location.href = `https://metamask.app.link/dapp/${window.location.host}${window.location.pathname}`;
+      } else if (providerName === "trust") {
+        window.location.href = `https://link.trustwallet.com/open_url?coin_id=60&url=${currentUrl}`;
+      } else {
+        alert(`Please open this app inside your ${providerName} mobile browser or install MetaMask.`);
+      }
     } else {
-      alert("No Web3 wallet extension detected in this browser. Please open in MetaMask or a Web3-enabled browser.");
+      alert(`No Web3 provider detected for ${providerName}. Please install the browser extension.`);
     }
   } catch (err) {
     console.error("Wallet connection error:", err);
@@ -246,17 +259,17 @@ function updateUI() {
   els.statShare.textContent = `${state.sharePercent}%`;
   els.statTokens.textContent = state.verifiedTokens;
 
-  let scaleFactor = 1.0;
+  let scaleFactor = 0.78;
   let tierName = "BABY TRENCH SHARK 🦈";
   
   if (state.sharePercent >= 5.0) {
-    scaleFactor = 1.45;
+    scaleFactor = 1.15;
     tierName = "GOD-TIER LEVIATHAN 🐋👑";
   } else if (state.sharePercent >= 2.0) {
-    scaleFactor = 1.25;
+    scaleFactor = 0.95;
     tierName = "ALPHA WHALE 🐋";
   } else if (state.sharePercent >= 0.5) {
-    scaleFactor = 1.1;
+    scaleFactor = 0.85;
     tierName = "CHAD DOLPHIN 🐬";
   }
 
