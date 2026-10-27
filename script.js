@@ -16,6 +16,7 @@ let state = {
   verifiedTokens: "1,250,400",
   lastFedTimestamp: 0,
   lastCheckinDate: "",
+  // Initialize from storage or default to 36 hours from now
   vitalityExpiresAt: Date.now() + (CONFIG.VITALITY_HOURS * 3600 * 1000)
 };
 
@@ -24,10 +25,10 @@ const els = {};
 
 document.addEventListener("DOMContentLoaded", () => {
   cacheDOM();
-  loadStateFromStorage();
+  loadStateFromStorage(); // Load saved timer & state FIRST
   initEventListeners();
   startVitalityLoop();
-  checkAutoReconnect();
+  checkAutoReconnect(); // Restore wallet session automatically
   updateUI();
 });
 
@@ -78,6 +79,7 @@ function initEventListeners() {
   }
 }
 
+// ROBUST STATE LOADING (FIXES TIMER RESETTING ON REFRESH)
 function loadStateFromStorage() {
   const saved = localStorage.getItem("trench_whale_state");
   if (saved) {
@@ -85,6 +87,8 @@ function loadStateFromStorage() {
       const parsed = JSON.parse(saved);
       state.lastFedTimestamp = parsed.lastFedTimestamp || 0;
       state.lastCheckinDate = parsed.lastCheckinDate || "";
+      
+      // Crucial: Load exact saved expiration timestamp so timer continues where it left off
       if (parsed.vitalityExpiresAt && parsed.vitalityExpiresAt > Date.now()) {
         state.vitalityExpiresAt = parsed.vitalityExpiresAt;
       }
@@ -114,26 +118,17 @@ function closeWalletModal() {
   if (els.walletModal) els.walletModal.hidden = true;
 }
 
-// AUTO-RECONNECT (RESTORES SESSION INSTANTLY WITHOUT ASKING TO RECONNECT)
+// AUTO-RECONNECT (FIXES WALLET DISCONNECTING ON REFRESH)
 async function checkAutoReconnect() {
   const savedAddress = localStorage.getItem("trench_whale_address");
   const isPreviouslyConnected = localStorage.getItem("trench_whale_connected") === "true";
 
   if (savedAddress && isPreviouslyConnected) {
-    updateWalletUI(savedAddress);
-
-    // Background verify with provider if injected
-    if (typeof window.ethereum !== "undefined") {
-      try {
-        const provider = new ethers.providers.Web3Provider(window.ethereum, "any");
-        const accounts = await provider.send("eth_accounts", []);
-        if (accounts && accounts.length > 0) {
-          updateWalletUI(accounts[0]);
-        }
-      } catch (e) {
-        console.warn("Background re-check skipped", e);
-      }
-    }
+    // Instantly lock session back in without asking user to reconnect
+    state.walletConnected = true;
+    state.walletAddress = savedAddress;
+    connectedWalletAddress = savedAddress;
+    updateUI();
   }
 }
 
@@ -211,6 +206,7 @@ function updateWalletUI(address) {
   state.walletAddress = address;
   connectedWalletAddress = address;
 
+  // Save persistence so user stays connected automatically across refreshes
   localStorage.setItem("trench_whale_connected", "true");
   localStorage.setItem("trench_whale_address", address);
 
@@ -288,7 +284,7 @@ function triggerPanicAlarm(active) {
   if (els.alarmOverlay) els.alarmOverlay.hidden = !active;
 }
 
-// FIXED CAPPED VITALITY LOGIC (Never exceeds fixed 36-hour ceiling)
+// CAPPED VITALITY LOGIC (With exact storage saving)
 function handleFeedAction() {
   const now = Date.now();
   const cooldownMs = CONFIG.FEED_COOLDOWN_HOURS * 3600 * 1000;
@@ -302,10 +298,9 @@ function handleFeedAction() {
   const maxDurationMs = CONFIG.VITALITY_HOURS * 3600 * 1000;
   const targetTime = Math.max(state.vitalityExpiresAt, now) + (12 * 3600 * 1000);
   
-  // Cap vitality timer strictly at the fixed 36-hour maximum from current time
   state.vitalityExpiresAt = Math.min(targetTime, now + maxDurationMs);
   state.lastFedTimestamp = now;
-  saveStateToStorage();
+  saveStateToStorage(); // Saves exact expiration timestamp
 
   const tweetText = encodeURIComponent(`My Trench Whale is breaching the abyss on @TrenchWhale! Supply share: ${state.sharePercent}%. Feed your beast or get rugged.`);
   window.open(`https://twitter.com/intent/tweet?text=${tweetText}`, '_blank');
@@ -325,10 +320,9 @@ function handleDailyCheckin() {
   const maxDurationMs = CONFIG.VITALITY_HOURS * 3600 * 1000;
   const targetTime = Math.max(state.vitalityExpiresAt, now) + (24 * 3600 * 1000);
 
-  // Cap daily check-in strictly at the fixed 36-hour maximum ceiling
   state.vitalityExpiresAt = Math.min(targetTime, now + maxDurationMs);
   state.lastCheckinDate = todayStr;
-  saveStateToStorage();
+  saveStateToStorage(); // Saves exact expiration timestamp
 
   triggerDialogue("Daily check-in verified. Diamond hands hold strong.");
   updateUI();
