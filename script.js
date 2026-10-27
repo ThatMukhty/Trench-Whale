@@ -8,7 +8,6 @@ const CONFIG = {
   VITALITY_HOURS: 36,
   FEED_COOLDOWN_HOURS: 12
 };
-
 let state = {
   walletConnected: localStorage.getItem("trench_whale_connected") === "true",
   walletAddress: localStorage.getItem("trench_whale_address") || "",
@@ -209,10 +208,13 @@ function updateWalletUI(address, isSilentRestore = false) {
   state.walletAddress = address;
   connectedWalletAddress = address;
 
-  // Save persistence instantly
   localStorage.setItem("trench_whale_connected", "true");
   localStorage.setItem("trench_whale_address", address);
-  saveStateToStorage();
+  
+  // Save all state metrics to storage instantly
+  localStorage.setItem("trench_last_fed", state.lastFedTimestamp);
+  localStorage.setItem("trench_last_checkin", state.lastCheckinDate);
+  localStorage.setItem("trench_vitality_expires", state.vitalityExpiresAt);
 
   if (CONFIG.TOKEN_CONTRACT_ADDRESS !== "0x0000000000000000000000000000000000000000" && typeof window.ethereum !== "undefined") {
     const web3Provider = new ethers.providers.Web3Provider(window.ethereum, "any");
@@ -254,6 +256,8 @@ function startVitalityLoop() {
     const now = Date.now();
     const timeLeft = state.vitalityExpiresAt - now;
 
+    // Sync timer expiration to storage every second so time is never lost
+    localStorage.setItem("trench_vitality_expires", state.vitalityExpiresAt);
     // Periodically save progress so time is never lost
     saveStateToStorage();
 
