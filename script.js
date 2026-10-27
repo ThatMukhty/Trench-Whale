@@ -16,7 +16,6 @@ let state = {
   verifiedTokens: "1,250,400",
   lastFedTimestamp: 0,
   lastCheckinDate: "",
-  // Initialize from storage or default to 36 hours from now
   vitalityExpiresAt: Date.now() + (CONFIG.VITALITY_HOURS * 3600 * 1000)
 };
 
@@ -25,10 +24,10 @@ const els = {};
 
 document.addEventListener("DOMContentLoaded", () => {
   cacheDOM();
-  loadStateFromStorage(); // Load saved timer & state FIRST
+  loadStateFromStorage(); // CRITICAL: Loads saved timer immediately on boot
   initEventListeners();
   startVitalityLoop();
-  checkAutoReconnect(); // Restore wallet session automatically
+  checkAutoReconnect(); // Restores wallet silently
   updateUI();
 });
 
@@ -79,7 +78,7 @@ function initEventListeners() {
   }
 }
 
-// ROBUST STATE LOADING (FIXES TIMER RESETTING ON REFRESH)
+// PERSISTENT STORAGE LOADING (TIMER CONTINUES COUNTING DOWN ACROSS REFRESHES)
 function loadStateFromStorage() {
   const saved = localStorage.getItem("trench_whale_state");
   if (saved) {
@@ -88,13 +87,15 @@ function loadStateFromStorage() {
       state.lastFedTimestamp = parsed.lastFedTimestamp || 0;
       state.lastCheckinDate = parsed.lastCheckinDate || "";
       
-      // Crucial: Load exact saved expiration timestamp so timer continues where it left off
-      if (parsed.vitalityExpiresAt && parsed.vitalityExpiresAt > Date.now()) {
+      if (parsed.vitalityExpiresAt) {
         state.vitalityExpiresAt = parsed.vitalityExpiresAt;
       }
     } catch (e) {
       console.error("Failed to parse storage state", e);
     }
+  } else {
+    // Save initial state immediately if nothing exists yet
+    saveStateToStorage();
   }
 }
 
@@ -118,13 +119,12 @@ function closeWalletModal() {
   if (els.walletModal) els.walletModal.hidden = true;
 }
 
-// AUTO-RECONNECT (FIXES WALLET DISCONNECTING ON REFRESH)
+// SILENT AUTO-RECONNECT (RESTORES WALLET STATE INSTANTLY WITHOUT PROMPTING)
 async function checkAutoReconnect() {
   const savedAddress = localStorage.getItem("trench_whale_address");
   const isPreviouslyConnected = localStorage.getItem("trench_whale_connected") === "true";
 
   if (savedAddress && isPreviouslyConnected) {
-    // Instantly lock session back in without asking user to reconnect
     state.walletConnected = true;
     state.walletAddress = savedAddress;
     connectedWalletAddress = savedAddress;
@@ -206,7 +206,6 @@ function updateWalletUI(address) {
   state.walletAddress = address;
   connectedWalletAddress = address;
 
-  // Save persistence so user stays connected automatically across refreshes
   localStorage.setItem("trench_whale_connected", "true");
   localStorage.setItem("trench_whale_address", address);
 
@@ -242,11 +241,14 @@ async function fetchOnChainData(provider, address) {
   }
 }
 
-// VITALITY & COUNTDOWN LOOP
+// VITALITY & COUNTDOWN LOOP (RUNS INDEPENDENTLY)
 function startVitalityLoop() {
   setInterval(() => {
     const now = Date.now();
     const timeLeft = state.vitalityExpiresAt - now;
+
+    // Periodically save progress so time is never lost
+    saveStateToStorage();
 
     if (timeLeft <= 0) {
       els.countdownTimer.textContent = "00:00:00 (RUGGED)";
@@ -284,7 +286,6 @@ function triggerPanicAlarm(active) {
   if (els.alarmOverlay) els.alarmOverlay.hidden = !active;
 }
 
-// CAPPED VITALITY LOGIC (With exact storage saving)
 function handleFeedAction() {
   const now = Date.now();
   const cooldownMs = CONFIG.FEED_COOLDOWN_HOURS * 3600 * 1000;
@@ -300,7 +301,7 @@ function handleFeedAction() {
   
   state.vitalityExpiresAt = Math.min(targetTime, now + maxDurationMs);
   state.lastFedTimestamp = now;
-  saveStateToStorage(); // Saves exact expiration timestamp
+  saveStateToStorage();
 
   const tweetText = encodeURIComponent(`My Trench Whale is breaching the abyss on @TrenchWhale! Supply share: ${state.sharePercent}%. Feed your beast or get rugged.`);
   window.open(`https://twitter.com/intent/tweet?text=${tweetText}`, '_blank');
@@ -322,7 +323,7 @@ function handleDailyCheckin() {
 
   state.vitalityExpiresAt = Math.min(targetTime, now + maxDurationMs);
   state.lastCheckinDate = todayStr;
-  saveStateToStorage(); // Saves exact expiration timestamp
+  saveStateToStorage();
 
   triggerDialogue("Daily check-in verified. Diamond hands hold strong.");
   updateUI();
